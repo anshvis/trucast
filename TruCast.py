@@ -8,6 +8,8 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_squared_error
 from prophet import Prophet
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 
 EXCEL_FILE_PATH = 'CBO Revenue Short.xlsx'
@@ -206,6 +208,4 @@ def process(input_path, export_path):
     output_data.dropna(inplace=True, how='all')
     output_data.to_excel(export_path, index_label='site')
     return output_data
-
-# output_data = process(EXCEL_FILE_PATH, OUTPUT_FILE_PATH)
 
