@@ -1,0 +1,9 @@
+Make sure that all Python Libraries are installed (check main.py file)
+
+How to run locally: python3 main.py
+
+How to download (macOS/Linux):
+
+- python3 setup.py py2app
+
+Windows:
