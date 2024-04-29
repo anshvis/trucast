@@ -1,0 +1,10 @@
+# Ignore directories created by py2app
+build/
+dist/
+
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python

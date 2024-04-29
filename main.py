@@ -215,8 +215,12 @@ import customtkinter as ctk
 from tkinter import ttk, filedialog
 import threading
 from tkinter import filedialog, Canvas
+<<<<<<< HEAD
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+=======
+import TruCast
+>>>>>>> parent of 6e3e37a (Set up graph properly)
 
 ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
 ctk.set_default_color_theme("green")  # Themes: "green" (default), "blue", "dark-blue"
@@ -286,6 +290,7 @@ class MainApp(ctk.CTk):
         if self.filepath_entry.get() and self.export_path_entry.get() and \
         (self.filepath_entry.get().endswith('.xls') or self.filepath_entry.get().endswith('.xlsx')):
             new_export_path = self.export_path_entry.get() + "/TruCast_Output.xlsx"
+<<<<<<< HEAD
             
             # Initialize the progress bar
             self.progress_bar = ttk.Progressbar(self.right_frame, orient='horizontal', 
@@ -330,39 +335,56 @@ class MainApp(ctk.CTk):
         if output:  # If there's output from the processing function, start the graphs interface
             app = GraphsApp(output)
             app.mainloop()
+=======
+            output = TruCast.process(self.filepath_entry.get(), new_export_path)
+            self.destroy()  # Close the current window
+            app = GraphsApp()  # Start the graphs interface
+            app.mainloop()
+        else:
+            print("Please select both an input file and an output directory.")
+>>>>>>> parent of 6e3e37a (Set up graph properly)
 
 class GraphsApp(ctk.CTk):
-    def __init__(self, output_data):
+
+    def __init__(self):
         super().__init__()
         self.title('Revenue Forecasting')
         self.geometry('800x600')
-        self.output_data = output_data  # This is the data you pass from the main app.
+
+        # Header label
         header_label = ctk.CTkLabel(master=self, text="Revenue Forecasting", font=("Roboto", 16), fg_color="#04B540", text_color="#FFFFFF")
         header_label.pack(fill='x', pady=10)
 
-        self.initialize_graph()
+        # Button frame
+        button_frame = ctk.CTkFrame(master=self)
+        button_frame.pack(pady=20, padx=20)
 
+<<<<<<< HEAD
     def initialize_graph(self):
         # This method will handle the plotting of the graph directly when the window is initialized.
         fig, ax = plt.subplots(figsize=(10, 6))  # Create a figure and an axes.
         past_revenue = self.output_data.sum().values[0:-NUMBER_OF_MONTHS] / 1e6
         forecasted_revenue = self.output_data.sum().values[-NUMBER_OF_MONTHS:] / 1e6
+=======
+        # Buttons for Prophet, ARIMA, and 3-Month Avg
+        prophet_button = ctk.CTkButton(master=button_frame, text="Prophet", command=lambda: self.switch_panel("prophet"))
+        prophet_button.grid(row=0, column=0, padx=10)
+>>>>>>> parent of 6e3e37a (Set up graph properly)
 
-        ax.plot(self.output_data.columns[0:-NUMBER_OF_MONTHS], past_revenue, 'bo-', label='Past Revenue')
-        ax.plot(self.output_data.columns[-NUMBER_OF_MONTHS:], forecasted_revenue, 'ro--', label='Forecasted Revenue')
+        arima_button = ctk.CTkButton(master=button_frame, text="ARIMA", command=lambda: self.switch_panel("arima"))
+        arima_button.grid(row=0, column=1, padx=10)
 
-        ax.set(title='Previous Data and Projections', xlabel='Month', ylabel='Revenue (Millions)')
-        ax.legend()
+        avg_button = ctk.CTkButton(master=button_frame, text="3-Month Avg.", command=lambda: self.switch_panel("avg"))
+        avg_button.grid(row=0, column=2, padx=10)
 
-        # Rotate and set the frequency of x-axis labels
-        ax.set_xticks(ax.get_xticks()[::3])  # Show every third tick label to reduce clutter.
-        ax.set_xticklabels(self.output_data.columns[::3], rotation=90)  # Rotate tick labels to 90 degrees.
+        # Graph panel
+        self.graph_panel = Canvas(master=self, bg="#f0f0f0", height=400, width=600)
+        self.graph_panel.pack(pady=20, padx=20)
 
-        # Embedding the matplotlib plot in the tkinter window.
-        canvas = FigureCanvasTkAgg(fig, master=self)  # A tk.DrawingArea.
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=ctk.TOP, fill=ctk.BOTH, expand=True)
-
+    def switch_panel(self, model):
+        print(f"Switched to {model} panel")
+        # Here, the canvas color change is a placeholder. Integrate your actual plotting logic here.
+        self.graph_panel.config(bg="#f0f0f0" if model != "avg" else "#d0d0d0")
 
 if __name__ == "__main__":
     app = MainApp()
