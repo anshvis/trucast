@@ -9,7 +9,6 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_squared_error
 from prophet import Prophet
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 EXCEL_FILE_PATH = 'CBO Revenue Short.xlsx'
@@ -215,12 +214,6 @@ import customtkinter as ctk
 from tkinter import ttk, filedialog
 import threading
 from tkinter import filedialog, Canvas
-<<<<<<< HEAD
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
-=======
-import TruCast
->>>>>>> parent of 6e3e37a (Set up graph properly)
 
 ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
 ctk.set_default_color_theme("green")  # Themes: "green" (default), "blue", "dark-blue"
