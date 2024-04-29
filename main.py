@@ -2,6 +2,7 @@
 import os
 import argparse
 import numpy as np
+import time
 from numpy.linalg import LinAlgError
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -283,7 +284,6 @@ class MainApp(ctk.CTk):
         if self.filepath_entry.get() and self.export_path_entry.get() and \
         (self.filepath_entry.get().endswith('.xls') or self.filepath_entry.get().endswith('.xlsx')):
             new_export_path = self.export_path_entry.get() + "/TruCast_Output.xlsx"
-<<<<<<< HEAD
             
             # Initialize the progress bar
             self.progress_bar = ttk.Progressbar(self.right_frame, orient='horizontal', 
@@ -328,14 +328,6 @@ class MainApp(ctk.CTk):
         if output:  # If there's output from the processing function, start the graphs interface
             app = GraphsApp(output)
             app.mainloop()
-=======
-            output = TruCast.process(self.filepath_entry.get(), new_export_path)
-            self.destroy()  # Close the current window
-            app = GraphsApp()  # Start the graphs interface
-            app.mainloop()
-        else:
-            print("Please select both an input file and an output directory.")
->>>>>>> parent of 6e3e37a (Set up graph properly)
 
 class GraphsApp(ctk.CTk):
 
@@ -349,25 +341,19 @@ class GraphsApp(ctk.CTk):
         header_label.pack(fill='x', pady=10)
 
         # Button frame
-        button_frame = ctk.CTkFrame(master=self)
-        button_frame.pack(pady=20, padx=20)
+        self.button_frame = ctk.CTkFrame(master=self)
+        self.button_frame.pack(pady=20, padx=20)
 
-<<<<<<< HEAD
     def initialize_graph(self):
         # This method will handle the plotting of the graph directly when the window is initialized.
         fig, ax = plt.subplots(figsize=(10, 6))  # Create a figure and an axes.
         past_revenue = self.output_data.sum().values[0:-NUMBER_OF_MONTHS] / 1e6
         forecasted_revenue = self.output_data.sum().values[-NUMBER_OF_MONTHS:] / 1e6
-=======
-        # Buttons for Prophet, ARIMA, and 3-Month Avg
-        prophet_button = ctk.CTkButton(master=button_frame, text="Prophet", command=lambda: self.switch_panel("prophet"))
-        prophet_button.grid(row=0, column=0, padx=10)
->>>>>>> parent of 6e3e37a (Set up graph properly)
 
-        arima_button = ctk.CTkButton(master=button_frame, text="ARIMA", command=lambda: self.switch_panel("arima"))
+        arima_button = ctk.CTkButton(master=self.button_frame, text="ARIMA", command=lambda: self.switch_panel("arima"))
         arima_button.grid(row=0, column=1, padx=10)
 
-        avg_button = ctk.CTkButton(master=button_frame, text="3-Month Avg.", command=lambda: self.switch_panel("avg"))
+        avg_button = ctk.CTkButton(master=self.button_frame, text="3-Month Avg.", command=lambda: self.switch_panel("avg"))
         avg_button.grid(row=0, column=2, padx=10)
 
         # Graph panel
