@@ -20,7 +20,15 @@ def fixed(revenue_series):
     return [revenue_series.iloc[-1]]*NUMBER_OF_MONTHS
 
 def three_month(revenue_series):
-    return [(revenue_series.iloc[-3] + revenue_series.iloc[-2] + revenue_series.iloc[-1])/3]*NUMBER_OF_MONTHS
+    three_month_proj = pd.Series([revenue_series.iloc[-3], revenue_series.iloc[-2], revenue_series.iloc[-1]])
+    for i in range(3, NUMBER_OF_MONTHS+3):
+        number_of_non_nan_points = three_month_proj[i-3:].count()
+        temp_series = three_month_proj.fillna(0)
+        next_month = (temp_series.iloc[-3] + temp_series.iloc[-2] + temp_series.iloc[-1]) / number_of_non_nan_points
+        three_month_proj = pd.concat([three_month_proj, pd.Series([next_month])], ignore_index=True)
+    
+    three_month_proj = three_month_proj[3:]
+    return three_month_proj
 
 
 def ARIMA_rolling_forcast_origin(revenue_series, number_of_predicted_months, p, q, d):
@@ -49,8 +57,8 @@ def arima(revenue_series):
     number_of_predicted_months = int(len(revenue_series)/3)
 
     # Choose the range of p and q that you want to optmize over
-    p_range = 6
-    q_range = 6
+    p_range = 4
+    q_range = 4
     d = 1
 
     # Create an ARIMA model on the data for each value of p and q forcast it forward using a rolling origin forcast, determine which pair of p and q works
@@ -115,35 +123,24 @@ def prophet(revenue_series):
 
     # return a tuple of the lower, point estimate, and upper bound for the last month
     return (predictions.values, predictions_lower.values, predictions_upper.values)
-
-def determine_projection(revenue_series, medium_threshold, large_threshold, fixed_rate_projection, three_month_projection, arima_projection, prophet_projection):
-    # if it's fixed, return fixed rate
-    if (fixed_rate_projection != -1):
-        return fixed_rate_projection
-    
-    if revenue_series.iloc[-NUMBER_OF_MONTHS:].count() == NUMBER_OF_MONTHS:
-        yearly_revenue = sum(revenue_series.iloc[-NUMBER_OF_MONTHS:])
-    else:
-        yearly_revenue = (revenue_series.mean())*NUMBER_OF_MONTHS
-    
-    if yearly_revenue < medium_threshold:
-        return arima_projection
-    else:
-        return prophet_projection
     
 def determine_projection_type(revenue_series, medium_threshold, large_threshold):
+    THREE_MONTH_AVERAGE_DATA_CUTOFF = 6
+
     if (revenue_series.iloc[-2] == revenue_series.iloc[-1]) or (np.isnan(revenue_series.iloc[-1])):
         return 'fixed'
-    elif revenue_series.iloc[-NUMBER_OF_MONTHS:].count() == NUMBER_OF_MONTHS:
-        yearly_revenue = sum(revenue_series.iloc[-NUMBER_OF_MONTHS:])
+    elif revenue_series.iloc[-NUMBER_OF_MONTHS:].count() >= THREE_MONTH_AVERAGE_DATA_CUTOFF:
+        # if there are less than 12 but more than 6 monthds of data, then find yearly revenue
+        number_of_month_data_points = revenue_series.iloc[-NUMBER_OF_MONTHS:].count()
+        yearly_revenue = (sum(revenue_series.iloc[-number_of_month_data_points:])/number_of_month_data_points)*12
     else:
         # if there isn't a years worth of data just return a 3 month average
         return 'three_month'
     
     if yearly_revenue < medium_threshold:
-        return 'arima'
+        return 'three_month'
     else:
-        return 'prophet'
+        return 'three_month'
     
 def rename_duplicates(names):
     name_count = {}
@@ -173,7 +170,7 @@ def process(input_path, export_path):
 
 
     # Create dataframe for the output date
-    new_months = list(pd.date_range(revenue_data.columns[-1], periods=13, freq='M').strftime('%Y-%m'))[1:13]
+    new_months = list(pd.date_range(revenue_data.columns[-1], periods=NUMBER_OF_MONTHS+1, freq='M').strftime('%Y-%m'))[1:NUMBER_OF_MONTHS+1]
     revenue_data.columns = [col.strftime('%Y-%m') if isinstance(col, pd.Timestamp) else col for col in revenue_data.columns]
     column_names = list(revenue_data.columns) + new_months
     revenue_data.index = rename_duplicates(revenue_data.index)
@@ -192,7 +189,6 @@ def process(input_path, export_path):
                 projection = arima(revenue_series)
             except:
                 projection = three_month(revenue_series)
-            #projection = [0]*12
         elif projection_type == 'prophet':
             try:
                 (projection, prophet_low, prophet_high) = prophet(revenue_series)
