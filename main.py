@@ -150,9 +150,9 @@ def determine_projection_type(revenue_series, medium_threshold, large_threshold)
     else:
         # if there isn't a years worth of data just return a 3 month average
         return 'three_month'
-    
-    if yearly_revenue < medium_threshold:
-        return 'arima'
+    #MODIFIED FOR TESTING
+    if yearly_revenue > medium_threshold:
+        return 'prophet'
     else:
         return 'prophet'
     
@@ -299,7 +299,7 @@ class MainApp(ctk.CTk):
             self.progress_bar = ttk.Progressbar(self.right_frame, orient='horizontal', 
                                                 mode='determinate', length=280)
             self.progress_bar.place(relx=0.5, rely=0.95, anchor='center', relwidth=0.95)
-            self.progress_bar['maximum'] = 300  # Assuming the model takes approximately 5 minutes
+            self.progress_bar['maximum'] = 500  # Assuming the model takes approximately 5 minutes
             self.progress_bar['value'] = 0  # Initialize the progress value
             
             # Start the process in a new thread
@@ -350,31 +350,32 @@ class GraphsApp(ctk.CTk):
 
     def initialize_graph(self):
         try:
-            fig, ax = plt.subplots(figsize=(10, 6))
+            fig, ax = plt.subplots(figsize=(12, 8))  # Increased figure size
             past_revenue = self.output_data.sum().values[0:-NUMBER_OF_MONTHS] / 1e6
             forecasted_revenue = self.output_data.sum().values[-NUMBER_OF_MONTHS:] / 1e6
 
-            ax.plot(self.output_data.columns[0:-NUMBER_OF_MONTHS], past_revenue, 'bo-', label='Past Revenue')
-            ax.plot(self.output_data.columns[-NUMBER_OF_MONTHS:], forecasted_revenue, 'ro--', label='Forecasted Revenue')
+            ax.plot(self.output_data.columns[0:-NUMBER_OF_MONTHS], past_revenue, 'green', label='Past Revenue')
+            ax.plot(self.output_data.columns[-NUMBER_OF_MONTHS:], forecasted_revenue, 'limegreen', linestyle='dotted', label='Forecasted Revenue')
 
             ax.set(title='Previous Data and Projections', xlabel='Month', ylabel='Revenue (Millions)')
             ax.legend()
 
-            # Set the x-ticks to display every third month and ensure that the labels correspond to these ticks
-            all_ticks = self.output_data.columns.tolist()  # Get all column names as a list
-            tick_size = len(all_ticks)//10
+            all_ticks = self.output_data.columns.tolist()
+            tick_size = len(all_ticks) // 10
             if tick_size == 0:
                 tick_size = 1
-            tick_positions = list(range(len(all_ticks)))  # Positions of all ticks
-            ax.set_xticks(tick_positions[::tick_size])  # Set ticks every third position
-            ax.set_xticklabels(all_ticks[::tick_size], rotation=90)  # Apply labels every third tick, with rotation
+            tick_positions = list(range(len(all_ticks)))
+            ax.set_xticks(tick_positions[::tick_size])
+            ax.set_xticklabels(all_ticks[::tick_size], rotation=90)
 
-            canvas = FigureCanvasTkAgg(fig, master=self)  # Embedding the plot into the tkinter window.
+            plt.tight_layout()  # Adjust layout to make room for tick labels
+            canvas = FigureCanvasTkAgg(fig, master=self)
             canvas.draw()
             canvas.get_tk_widget().pack(fill=ctk.BOTH, expand=True)
-            print("Graph should now be visible.")  # Debug print
+            print("Graph should now be visible.")
         except Exception as e:
-            print("Failed to initialize graph:", e)  # Print any error that occurs
+            print("Failed to initialize graph:", e)
+
 
 
 # class GraphsApp(ctk.CTk):
