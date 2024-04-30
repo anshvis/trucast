@@ -57,8 +57,8 @@ def arima(revenue_series):
     number_of_predicted_months = int(len(revenue_series)/3)
 
     # Choose the range of p and q that you want to optmize over
-    p_range = 3
-    q_range = 3
+    p_range = 3  #put 
+    q_range = 3  #put 
     d = 1
 
     # Create an ARIMA model on the data for each value of p and q forcast it forward using a rolling origin forcast, determine which pair of p and q works
