@@ -7,3 +7,5 @@ How to download (macOS/Linux):
 - python3 setup.py py2app
 
 Windows:
+
+- pyinstaller main.py --onefile --windowed
