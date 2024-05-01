@@ -5,7 +5,9 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('C:/users/chris/appdata/local/programs/python/python310/lib/site-packages/prophet','prophet/stan_model')
+    ],
     hiddenimports=['prophet'],
     hookspath=[],
     hooksconfig={},
@@ -31,7 +33,6 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
-    icon='trucast_logo.ico'),
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
