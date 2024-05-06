@@ -1,13 +1,20 @@
-from setuptools import setup
+import cx_Freeze, sys
+base = None
+print(sys.platform)
 
-APP = ['main.py']  # Path to your main application file
-OPTIONS = {
-    'argv_emulation': True,
-}
+if sys.platform == 'win32':
+    base = "Win32GUI"
 
-setup(
-    app=APP,
-    name="TruCast",
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app']
+executables = [cx_Freeze.Executable("main.py", base=base, target_name="trucast.exe")]
+
+cx_Freeze.setup(
+    name="trucast.exe",
+    options={"build_exe": {"packages": ["tkinter", "time", "numpy", "pandas", 
+                                        "matplotlib", "statsmodels", "sklearn", 
+                                        "prophet", "customtkinter", "threading", 
+                                        "tkinter"]}}, 
+    version="1.0",
+    description="Trucast predicts financial forecasting for TrueBridge Inc.",
+    executables=executables
+
 )

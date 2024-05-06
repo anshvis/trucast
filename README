@@ -8,4 +8,4 @@ How to download (macOS/Linux):
 
 Windows:
 
-- pyinstaller main.py --onefile --windowed
+- pyinstaller --onefile --add-data --windowed "insert full folder path for prophet;./prophet" main.py

@@ -10,6 +10,8 @@ from sklearn.metrics import mean_squared_error
 from prophet import Prophet
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# path = C:\Users\chris\Documents\GitHub\trucast\prophet
+
 
 EXCEL_FILE_PATH = 'CBO Revenue Short.xlsx'
 OUTPUT_FILE_PATH = 'TruCast Output 3 Month.xlsx'
