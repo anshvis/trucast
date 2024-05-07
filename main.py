@@ -9,6 +9,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_squared_error
 from prophet import Prophet
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.dates as mdates
 
 # path = C:\Users\chris\Documents\GitHub\trucast\prophet
 
@@ -125,20 +126,6 @@ def prophet(revenue_series):
 
     # return a tuple of the lower, point estimate, and upper bound for the last month
     return (predictions.values, predictions_lower.values, predictions_upper.values)
-
-    # if it's fixed, return fixed rate
-    if (fixed_rate_projection != -1):
-        return fixed_rate_projection
-    
-    if revenue_series.iloc[-NUMBER_OF_MONTHS:].count() == NUMBER_OF_MONTHS:
-        yearly_revenue = sum(revenue_series.iloc[-NUMBER_OF_MONTHS:])
-    else:
-        yearly_revenue = (revenue_series.mean())*NUMBER_OF_MONTHS
-    
-    if yearly_revenue < medium_threshold:
-        return arima_projection
-    else:
-        return prophet_projection
     
 def determine_projection_type(revenue_series, medium_threshold, large_threshold):
     THREE_MONTH_AVERAGE_DATA_CUTOFF = 6
@@ -182,9 +169,6 @@ def process(input_path, export_path): # export_path is deprecate
     else:
         print("Error: Input file must be in Excel format.")
 
-    # TODO Clean data
-
-
     # Create dataframe for the output date
     new_months = list(pd.date_range(revenue_data.columns[-1], periods=NUMBER_OF_MONTHS+1, freq='M').strftime('%Y-%m'))[1:NUMBER_OF_MONTHS+1]
     revenue_data.columns = [col.strftime('%Y-%m') if isinstance(col, pd.Timestamp) else col for col in revenue_data.columns]
@@ -223,9 +207,14 @@ def process(input_path, export_path): # export_path is deprecate
 
 # GUI CODE
 import customtkinter as ctk
-from tkinter import ttk, filedialog
+from tkinter import filedialog, ttk
+import tkinter as tk
 import threading
-from tkinter import filedialog, Canvas
+import time
+import pandas as pd
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt 
 
 ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
 ctk.set_default_color_theme("green")  # Themes: "green" (default), "blue", "dark-blue"
@@ -333,93 +322,163 @@ class MainApp(ctk.CTk):
         self.after(100, self.close_progress, output, new_export_path)
 
     def close_progress(self, output, new_export_path):
+        # Update GUI elements safely on the main thread
+        self.after(0, self.update_gui_after_processing, output, new_export_path)
+
+    def update_gui_after_processing(self, output, new_export_path):
+        # Safe update of GUI elements after processing
         if self.progress_bar:
             self.progress_bar['value'] = self.progress_bar['maximum']
             self.progress_bar.stop()
             self.progress_bar.pack_forget()
-        
-        if output is not None: # only graph on the main thread, if output is none, this call was made from progress bar thread
-            if not output.empty:  # Check that the output DataFrame is not empty.
-                self.graph_window = GraphsApp(output)  # Initialize with data.
-                self.graph_window.mainloop()
+
+        if output is not None and not output.empty:
+            self.graph_window = GraphsApp(output, new_export_path)
+            self.graph_window.mainloop() 
 
 
 class GraphsApp(ctk.CTk):
     def __init__(self, output_data, export_path):
         super().__init__()
         self.title('Revenue Forecasting')
-        self.geometry('800x600')
-        self.output_data = output_data  # Storing the data to be used for plotting.
-        self.initialize_graph()  # Initialize graph immediately after creation.
+        self.geometry('1600x1000')  # Adjusted to fit both graph and side controls
+
+        # Initialize important data
+        self.output_data = output_data
         self.export_path = export_path
 
-    def initialize_graph(self):
+        # Create a main frame to hold the graph
+        main_frame = ctk.CTkFrame(self)
+        main_frame.pack(side='left', fill='both', expand=True)
+
+        # Create a control frame to hold the date selection widgets
+        control_frame = ctk.CTkFrame(self, width=300)  # Fixed width for control panel
+        control_frame.pack(side='right', fill='y')
+
+        # Initialize the matplotlib figure
+        self.fig, self.ax = plt.subplots(figsize=(12, 8))
+        self.canvas_widget = FigureCanvasTkAgg(self.fig, master=main_frame)
+        self.canvas_widget.get_tk_widget().pack(side='top', fill='both', expand=True)
+
+        # Initialize graph
+        self.initialize_graph()
+
+        # Add date selection widgets to the right side
+        self.add_date_selection_widgets(control_frame)
+
+    def initialize_graph(self, start_date=None, end_date=None):
         try:
-            fig, ax = plt.subplots(figsize=(12, 8))  # Increased figure size
-            past_revenue = self.output_data.sum().values[0:-NUMBER_OF_MONTHS] / 1e6
-            forecasted_revenue = self.output_data.sum().values[-NUMBER_OF_MONTHS:] / 1e6
+            self.ax.clear()
 
-            ax.plot(self.output_data.columns[0:-NUMBER_OF_MONTHS], past_revenue, 'green', label='Past Revenue')
-            ax.plot(self.output_data.columns[-NUMBER_OF_MONTHS:], forecasted_revenue, 'limegreen', linestyle='dotted', label='Forecasted Revenue')
+            # Prepare data for plotting
+            if 'site' in self.output_data.columns:
+                data_for_plotting = self.output_data.drop(columns=['site'])  # Drop non-date column
+            else:
+                data_for_plotting = self.output_data.copy()
 
-            ax.set(title='Previous Data and Projections', xlabel='Month', ylabel='Revenue (Millions)')
-            ax.legend()
+            # Convert column names to datetime
+            data_for_plotting.columns = pd.to_datetime(data_for_plotting.columns)
 
-            all_ticks = self.output_data.columns.tolist()
-            tick_size = len(all_ticks) // 10
-            if tick_size == 0:
-                tick_size = 1
-            tick_positions = list(range(len(all_ticks)))
-            ax.set_xticks(tick_positions[::tick_size])
-            ax.set_xticklabels(all_ticks[::tick_size], rotation=90)
+            # Filter based on the provided date range
+            if start_date and end_date:
+                data_for_plotting = data_for_plotting.loc[:, start_date:end_date]
 
-            plt.tight_layout()  # Adjust layout to make room for tick labels
-            canvas = FigureCanvasTkAgg(fig, master=self)
-            canvas.draw()
-            canvas.get_tk_widget().pack(fill=ctk.BOTH, expand=True)
-            print("Graph should now be visible.")
+            # Sum up all rows for each date to get total revenue per date
+            revenue_data = data_for_plotting.sum()
+
+            # Define the range for projected revenue (adjust as needed)
+            projected_start = pd.to_datetime('2024-01-01')
+            projected_end = pd.to_datetime('2025-12-31')
+            projected_range = pd.date_range(start=projected_start, end=projected_end, freq='MS')
+
+            # Identify which projected dates are within the current data
+            included_projected_dates = [date for date in projected_range if date in revenue_data.index]
+
+            # Separate actual and projected revenue data
+            actual_revenue_data = revenue_data[~revenue_data.index.isin(included_projected_dates)]
+            projected_revenue_data = revenue_data[revenue_data.index.isin(included_projected_dates)]
+
+            # Plot the actual and projected revenue
+            if not actual_revenue_data.empty:
+                self.ax.plot(actual_revenue_data.index, actual_revenue_data.values / 1e6, 'green', label='Actual Revenue')
+
+            if not projected_revenue_data.empty:
+                self.ax.plot(projected_revenue_data.index, projected_revenue_data.values / 1e6, 'limegreen', linestyle='dotted', label='Projected Revenue')
+
+            # Add labels to every other point in the actual data with dynamic offset
+            values = actual_revenue_data.values / 1e6
+            for index, (date, value) in enumerate(zip(actual_revenue_data.index, values)):
+                if index % 2 == 0:  # Label every other point
+                    offset = 0.1 if (values[index] - values[index - 1]) > 0 else -0.1 if index > 0 else 0.1
+                    self.ax.text(
+                        date, value + offset,
+                        f"{value:.2f}",
+                        fontsize=8,
+                        ha='center',
+                        va='bottom' if offset > 0 else 'top',
+                        color='green'
+                    )
+
+            # Set chart title and labels
+            self.ax.set(title='Total Revenue Over Selected Period', xlabel='Date', ylabel='Revenue (Millions)')
+            self.ax.legend()
+
+            # Adjust x-axis ticks for better readability
+            self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+
+            self.canvas_widget.draw()
         except Exception as e:
             print("Failed to initialize graph:", e)
-    
+
+    def add_date_selection_widgets(self, control_frame):
+        # Create and pack date selection dropdowns and a regraph button within the control_frame
+        self.start_date_var = ctk.StringVar()
+        self.end_date_var = ctk.StringVar()
+
+        if 'site' in self.output_data.columns:
+            data_for_plotting = self.output_data.drop(columns=['site'])
+        else:
+            data_for_plotting = self.output_data.copy()
+        data_for_plotting.columns = pd.to_datetime(data_for_plotting.columns)
+        date_options = data_for_plotting.columns.strftime('%Y-%m-%d').tolist()
+
+        # Label and dropdown for the start date
+        start_date_label = ctk.CTkLabel(control_frame, text="Start Date:")
+        start_date_label.pack(pady=(50, 0), padx=20, anchor='n')
+        start_date_dropdown = ctk.CTkOptionMenu(control_frame, variable=self.start_date_var, values=date_options)
+        start_date_dropdown.pack(pady=(0, 10), padx=20, anchor='n')
+        self.start_date_var.set(date_options[0])  # Default to the first date
+
+        # Label and dropdown for the end date
+        end_date_label = ctk.CTkLabel(control_frame, text="End Date:")
+        end_date_label.pack(pady=(10, 0), padx=20, anchor='n')
+        end_date_dropdown = ctk.CTkOptionMenu(control_frame, variable=self.end_date_var, values=date_options)
+        end_date_dropdown.pack(pady=(0, 10), padx=20, anchor='n')
+        self.end_date_var.set(date_options[-1])  # Default to the last date
+
+        # Button to regraph based on the selected dates
+        regraph_button = ctk.CTkButton(control_frame, text='Regraph', command=self.regraph_based_on_selection)
+        regraph_button.pack(pady=(20, 40), padx=20, anchor='n')
+
+        # Button to export data to Excel
+        export_button = ctk.CTkButton(control_frame, text='Export to Excel', command=self.export_to_excel)
+        export_button.pack(pady=20, padx=20, anchor='n')
+
     def export_to_excel(self):
-        self.output_data.to_excel(self.export_path, index_label='site')
+        try:
+            self.output_data.to_excel(self.export_path, index_label='site')
+            print("Data exported successfully to", self.export_path)
+        except Exception as e:
+            print("Failed to export data:", e)
 
+    def regraph_based_on_selection(self):
+        start_date = pd.to_datetime(self.start_date_var.get())
+        end_date = pd.to_datetime(self.end_date_var.get())
+        self.ax.clear()
+        self.initialize_graph(start_date=start_date, end_date=end_date)
+        self.canvas_widget.draw()
 
-# class GraphsApp(ctk.CTk):
-
-#     def __init__(self):
-#         super().__init__()
-#         self.title('Revenue Forecasting')
-#         self.geometry('800x600')
-
-#         # Header label
-#         header_label = ctk.CTkLabel(master=self, text="Revenue Forecasting", font=("Roboto", 16), fg_color="#04B540", text_color="#FFFFFF")
-#         header_label.pack(fill='x', pady=10)
-
-#         # Button frame
-#         self.button_frame = ctk.CTkFrame(master=self)
-#         self.button_frame.pack(pady=20, padx=20)
-
-#     def initialize_graph(self):
-#         # This method will handle the plotting of the graph directly when the window is initialized.
-#         fig, ax = plt.subplots(figsize=(10, 6))  # Create a figure and an axes.
-#         past_revenue = self.output_data.sum().values[0:-NUMBER_OF_MONTHS] / 1e6
-#         forecasted_revenue = self.output_data.sum().values[-NUMBER_OF_MONTHS:] / 1e6
-
-#         arima_button = ctk.CTkButton(master=self.button_frame, text="ARIMA", command=lambda: self.switch_panel("arima"))
-#         arima_button.grid(row=0, column=1, padx=10)
-
-#         avg_button = ctk.CTkButton(master=self.button_frame, text="3-Month Avg.", command=lambda: self.switch_panel("avg"))
-#         avg_button.grid(row=0, column=2, padx=10)
-
-#         # Graph panel
-#         self.graph_panel = Canvas(master=self, bg="#f0f0f0", height=400, width=600)
-#         self.graph_panel.pack(pady=20, padx=20)
-
-#     def switch_panel(self, model):
-#         print(f"Switched to {model} panel")
-#         # Here, the canvas color change is a placeholder. Integrate your actual plotting logic here.
-#         self.graph_panel.config(bg="#f0f0f0" if model != "avg" else "#d0d0d0")
 
 if __name__ == "__main__":
     app = MainApp()
