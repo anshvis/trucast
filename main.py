@@ -337,9 +337,11 @@ class MainApp(ctk.CTk):
             self.progress_bar['value'] = self.progress_bar['maximum']
             self.progress_bar.stop()
             self.progress_bar.pack_forget()
-        if not output.empty:  # Check that the output DataFrame is not empty.
-            self.graph_window = GraphsApp(output)  # Initialize with data.
-            self.graph_window.mainloop()
+        
+        if output is not None: # only graph on the main thread, if output is none, this call was made from progress bar thread
+            if not output.empty:  # Check that the output DataFrame is not empty.
+                self.graph_window = GraphsApp(output)  # Initialize with data.
+                self.graph_window.mainloop()
 
 
 class GraphsApp(ctk.CTk):
