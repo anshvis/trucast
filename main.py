@@ -175,7 +175,7 @@ def rename_duplicates(names):
 
     return modified_names
     
-def process(input_path, export_path):
+def process(input_path, export_path): # export_path is deprecate
     if input_path.endswith('.xls') or input_path.endswith('.xlsx'):
         #revenue_data = pd.read_excel(EXCEL_FILE_PATH, index_col=['Site', 'Customer Code'])
         revenue_data = pd.read_excel(input_path, index_col='site')
@@ -212,11 +212,11 @@ def process(input_path, export_path):
                 projection = three_month(revenue_series)
 
         projection = [rev if rev >= 0 or np.isnan(rev) else 0 for rev in projection] # Sets a lower bound of 0 for any projection
-
+        
         output_data.loc[hospital] = pd.concat([revenue_series, pd.Series(data=projection, index=new_months)])
-
+    
     output_data.dropna(inplace=True, how='all')
-    output_data.to_excel(export_path, index_label='site')
+    # output_data.to_excel(export_path, index_label='site') # deprecated
     return output_data
 
 
@@ -320,7 +320,7 @@ class MainApp(ctk.CTk):
         for i in range(300):
             if not self.process_thread.is_alive():
                 # If the process is done, break out of the loop
-                self.close_progress(None)
+                self.close_progress(None, None)
                 return
             time.sleep(1)  # Wait for one second
             self.progress_bar['value'] += 1  # Update the progress bar's value
@@ -328,27 +328,36 @@ class MainApp(ctk.CTk):
 
     def run_process(self, filepath, new_export_path):
         # Your processing function
-        output = process(filepath, new_export_path)
+        output = process(filepath, new_export_path) # passing new_export_path to process is deprecated
         # Update the GUI after the processing is done
-        self.after(100, self.close_progress, output)
+        self.after(100, self.close_progress, output, new_export_path)
 
-    def close_progress(self, output):
+    def close_progress(self, output, new_export_path):
         if self.progress_bar:
             self.progress_bar['value'] = self.progress_bar['maximum']
             self.progress_bar.stop()
             self.progress_bar.pack_forget()
+<<<<<<< Updated upstream
         if not output.empty:  # Check that the output DataFrame is not empty.
             self.graph_window = GraphsApp(output)  # Initialize with data.
             self.graph_window.mainloop()
+=======
+        
+        if output is not None: # only graph on the main thread, if output is none, this call was made from progress bar thread
+            if not output.empty:  # Check that the output DataFrame is not empty.
+                self.graph_window = GraphsApp(output, new_export_path)  # Initialize with data.
+                self.graph_window.mainloop()
+>>>>>>> Stashed changes
 
 
 class GraphsApp(ctk.CTk):
-    def __init__(self, output_data):
+    def __init__(self, output_data, export_path):
         super().__init__()
         self.title('Revenue Forecasting')
         self.geometry('800x600')
         self.output_data = output_data  # Storing the data to be used for plotting.
         self.initialize_graph()  # Initialize graph immediately after creation.
+        self.export_path = export_path
 
     def initialize_graph(self):
         try:
@@ -377,7 +386,9 @@ class GraphsApp(ctk.CTk):
             print("Graph should now be visible.")
         except Exception as e:
             print("Failed to initialize graph:", e)
-
+    
+    def export_to_excel(self):
+        self.output_data.to_excel(self.export_path, index_label='site')
 
 
 # class GraphsApp(ctk.CTk):
