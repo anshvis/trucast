@@ -13,11 +13,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # path = C:\Users\chris\Documents\GitHub\trucast\prophet
 
 
-EXCEL_FILE_PATH = 'CBO Revenue Short.xlsx'
-OUTPUT_FILE_PATH = 'TruCast Output 3 Month.xlsx'
+EXCEL_FILE_PATH = 'CBO Revenue Short.xlsx' # pre-GUI testing
+OUTPUT_FILE_PATH = 'TruCast Output 3 Month.xlsx' # pre-GUI testing
 MEDIUM_THRESHOLD = 200000 # in dollars
 LARGE_THRESHOLD = 533000 # in dollars
-NUMBER_OF_MONTHS = 12 # in months
+NUMBER_OF_MONTHS = 24 # in months
 
 def fixed(revenue_series):
     return [revenue_series.iloc[-1]]*NUMBER_OF_MONTHS
