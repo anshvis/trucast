@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\chris\\Documents\\GitHub\\trucast\\prophet', './prophet')],
+    datas=[('C:/Users/chris/Documents/GitHub/trucast/prophet', './prophet')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
