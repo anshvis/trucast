@@ -284,7 +284,7 @@ class MainApp(ctk.CTk):
     def start_backend_process(self):
         if self.filepath_entry.get() and self.export_path_entry.get() and \
         (self.filepath_entry.get().endswith('.xls') or self.filepath_entry.get().endswith('.xlsx')):
-            new_export_path = self.export_path_entry.get() + "/TruCast_Output.xlsx"
+            # new_export_path = self.export_path_entry.get() + "/TruCast_Output.xlsx"
             
             # Initialize the progress bar
             self.progress_bar = ttk.Progressbar(self.right_frame, orient='horizontal', 
@@ -295,7 +295,7 @@ class MainApp(ctk.CTk):
             
             # Start the process in a new thread
             self.process_thread = threading.Thread(target=self.run_process, 
-                                                args=(self.filepath_entry.get(), new_export_path))
+                                                args=(self.filepath_entry.get(), self.export_path_entry.get()))
             self.process_thread.start()
 
             # Start updating the progress bar in a new thread
@@ -315,17 +315,17 @@ class MainApp(ctk.CTk):
             self.progress_bar['value'] += 1  # Update the progress bar's value
             self.update()  # Refresh the progress bar's visual representation
 
-    def run_process(self, filepath, new_export_path):
+    def run_process(self, filepath, export_path):
         # Your processing function
-        output = process(filepath, new_export_path) # passing new_export_path to process is deprecated
+        output = process(filepath, export_path) # passing new_export_path to process is deprecated
         # Update the GUI after the processing is done
-        self.after(100, self.close_progress, output, new_export_path)
+        self.after(100, self.close_progress, output, export_path)
 
-    def close_progress(self, output, new_export_path):
+    def close_progress(self, output, export_path):
         # Update GUI elements safely on the main thread
-        self.after(0, self.update_gui_after_processing, output, new_export_path)
+        self.after(0, self.update_gui_after_processing, output, export_path)
 
-    def update_gui_after_processing(self, output, new_export_path):
+    def update_gui_after_processing(self, output, export_path):
         # Safe update of GUI elements after processing
         if self.progress_bar:
             self.progress_bar['value'] = self.progress_bar['maximum']
@@ -333,12 +333,12 @@ class MainApp(ctk.CTk):
             self.progress_bar.pack_forget()
 
         if output is not None and not output.empty:
-            self.graph_window = GraphsApp(output, new_export_path)
+            self.graph_window = GraphsApp(output,self.filepath_entry.get(),export_path)
             self.graph_window.mainloop() 
 
 
 class GraphsApp(ctk.CTk):
-    def __init__(self, output_data, export_path):
+    def __init__(self, output_data,import_path, export_path): # output data always NUMBER_OF_MONTHS projected columns added on
         super().__init__()
         self.title('Revenue Forecasting')
         self.geometry('1600x1000')  # Adjusted to fit both graph and side controls
@@ -346,6 +346,7 @@ class GraphsApp(ctk.CTk):
         # Initialize important data
         self.output_data = output_data
         self.export_path = export_path
+        self.import_path = import_path
 
         # Create a main frame to hold the graph
         main_frame = ctk.CTkFrame(self)
@@ -365,6 +366,10 @@ class GraphsApp(ctk.CTk):
 
         # Add date selection widgets to the right side
         self.add_date_selection_widgets(control_frame)
+
+        # intialize these to very first and last month
+        self.start_date_var.set(self.output_data.columns[1]) 
+        self.end_date_var.set(self.output_data.columns[-1])
 
     def initialize_graph(self, start_date=None, end_date=None):
         try:
@@ -387,8 +392,8 @@ class GraphsApp(ctk.CTk):
             revenue_data = data_for_plotting.sum()
 
             # Define the range for projected revenue (adjust as needed)
-            projected_start = pd.to_datetime('2024-01-01')
-            projected_end = pd.to_datetime('2025-12-31')
+            projected_start = pd.to_datetime(self.output_data.columns[-1 - NUMBER_OF_MONTHS + 1]) # projected start should be the last month - NUMBER OF MONTHS
+            projected_end = pd.to_datetime(self.output_data.columns[-1]) # projected ends should be the last month
             projected_range = pd.date_range(start=projected_start, end=projected_end, freq='MS')
 
             # Identify which projected dates are within the current data
@@ -465,19 +470,50 @@ class GraphsApp(ctk.CTk):
         export_button = ctk.CTkButton(control_frame, text='Export to Excel', command=self.export_to_excel)
         export_button.pack(pady=20, padx=20, anchor='n')
 
-    def export_to_excel(self):
-        try:
-            self.output_data.to_excel(self.export_path, index_label='site')
-            print("Data exported successfully to", self.export_path)
-        except Exception as e:
-            print("Failed to export data:", e)
-
     def regraph_based_on_selection(self):
         start_date = pd.to_datetime(self.start_date_var.get())
         end_date = pd.to_datetime(self.end_date_var.get())
         self.ax.clear()
         self.initialize_graph(start_date=start_date, end_date=end_date)
         self.canvas_widget.draw()
+
+    def export_to_excel(self):
+        try:
+            # Convert start and end dates from strings to datetime objects
+            start_date_str = self.start_date_var.get()
+            end_date_str = self.end_date_var.get()
+            start_date = pd.to_datetime(start_date_str)
+            end_date = pd.to_datetime(end_date_str)
+
+            # Prepare data for export, dropping 'site' only temporarily for date operations
+            if 'site' in self.output_data.columns:
+                data_for_export = self.output_data.drop(columns=['site'])
+                site_column = self.output_data['site']  # Preserve the 'site' column separately
+            else:
+                data_for_export = self.output_data.copy()
+                site_column = None
+
+            # Ensure column names are datetime objects for comparison
+            data_for_export.columns = pd.to_datetime(data_for_export.columns)
+
+            # Filter columns within the date range
+            filtered_data = data_for_export.loc[:, (data_for_export.columns >= start_date) & (data_for_export.columns <= end_date)]
+
+            # Convert the filtered column names to the desired string format '%Y-%m'
+            filtered_data.columns = [col.strftime('%Y-%m') for col in filtered_data.columns]
+
+            # Re-integrate the 'site' column if it was originally present
+            if site_column is not None:
+                filtered_data.insert(0, 'site', site_column)  # Insert at position 0 to maintain order
+            print(self.import_path)
+            # Export the filtered data to Excel
+            output_filename = f"{self.export_path}/TruCast_OUTPUT_{self.import_path.split('/')[-1].split('.')[0]}_({filtered_data.columns[0]}_{filtered_data.columns[-1]}).xlsx"
+            filtered_data.to_excel(output_filename, index_label='site')
+            print(f"Data exported successfully to {output_filename}")
+        except Exception as e:
+            print("Failed to export data:", e)
+
+
 
 
 if __name__ == "__main__":
