@@ -8,4 +8,4 @@ How to download (macOS/Linux):
 
 Windows:
 
-- pyinstaller --onefile --add-data --windowed "insert full folder path for prophet;./prophet" main.py
+- pyinstaller --onefile --add-data "C:/Users/chris/Documents/GitHub/trucast/prophet;./prophet" main.py

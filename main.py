@@ -60,8 +60,8 @@ def arima(revenue_series):
     number_of_predicted_months = int(len(revenue_series)/3)
 
     # Choose the range of p and q that you want to optmize over
-    p_range = 3  #put 
-    q_range = 3  #put 
+    p_range = 4  #put 
+    q_range = 4  #put 
     d = 1
 
     # Create an ARIMA model on the data for each value of p and q forcast it forward using a rolling origin forcast, determine which pair of p and q works
@@ -341,7 +341,7 @@ class GraphsApp(ctk.CTk):
     def __init__(self, output_data,import_path, export_path): # output data always NUMBER_OF_MONTHS projected columns added on
         super().__init__()
         self.title('Revenue Forecasting')
-        self.geometry('1600x1000')  # Adjusted to fit both graph and side controls
+        self.geometry('1200x600')  # Adjusted to fit both graph and side controls
 
         # Initialize important data
         self.output_data = output_data
@@ -422,6 +422,19 @@ class GraphsApp(ctk.CTk):
                         ha='center',
                         va='bottom' if offset > 0 else 'top',
                         color='green'
+                    )
+
+            values_proj = projected_revenue_data.values / 1e6
+            for index, (date, value) in enumerate(zip(projected_revenue_data.index, values_proj)):
+                if index % 2 == 0:  # Label every other point
+                    offset = 0.1 if (values[index] - values[index - 1]) > 0 else -0.1 if index > 0 else 0.1
+                    self.ax.text(
+                        date, value + offset,
+                        f"{value:.2f}",
+                        fontsize=8,
+                        ha='center',
+                        va='bottom' if offset > 0 else 'top',
+                        color='limegreen'
                     )
 
             # Set chart title and labels
