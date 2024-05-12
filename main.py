@@ -141,7 +141,7 @@ def determine_projection_type(revenue_series, medium_threshold, large_threshold)
         return 'three_month'
     #MODIFIED FOR TESTING
     if yearly_revenue > medium_threshold:
-        return 'prophet'
+        return 'arima'
     else:
         return 'prophet'
     
