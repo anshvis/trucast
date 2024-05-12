@@ -141,6 +141,7 @@ def determine_projection_type(revenue_series, medium_threshold, large_threshold)
         return 'three_month'
     #MODIFIED FOR TESTING
     if yearly_revenue > medium_threshold:
+        # return 'arima'
         return 'arima'
     else:
         return 'prophet'
@@ -181,6 +182,8 @@ def process(input_path, export_path): # export_path is deprecate
     #Loop through hospitals
     for hospital, revenue_series in revenue_data.iterrows():
         projection_type = determine_projection_type(revenue_series, MEDIUM_THRESHOLD, LARGE_THRESHOLD)
+        
+        print(f'Hospital:{hospital}, Model:{projection_type}')
         # append hospitl and projection type to df
         # hospital_model_df = hospital_model_df.append({'Hospital': f'{hospital}', 'Model': f'{projection_type}'}, ignore_index=True) #deprecated
         hospital_model[hospital] = projection_type
