@@ -1,6 +1,5 @@
 # Ignore directories created by py2app
 build/
-dist/
 output/
 
 

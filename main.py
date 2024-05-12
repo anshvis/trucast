@@ -211,7 +211,7 @@ def process(input_path, export_path): # export_path is deprecate
     hospital_model_df = pd.DataFrame(list(hospital_model.items()), columns=['Hospital', 'Model'])
     # output_data.to_excel(export_path, index_label='site') # deprecated
     input_file_name = input_path.split('/')[-1]
-    hospital_model_output_path = export_path+ '/TruCast_Models_Used' + input_file_name+".xlsx"
+    hospital_model_output_path = export_path+ '/TruCast_Models_Used_' + input_file_name+".xlsx"
     hospital_model_df.to_excel(hospital_model_output_path, index_label='site')
     
     return output_data
