@@ -4,9 +4,7 @@ import numpy as np
 from numpy.linalg import LinAlgError
 import pandas as pd
 import matplotlib.pyplot as plt
-from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_squared_error
 from prophet import Prophet
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
