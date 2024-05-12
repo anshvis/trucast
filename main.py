@@ -176,13 +176,14 @@ def process(input_path, export_path): # export_path is deprecate
     revenue_data.index = rename_duplicates(revenue_data.index)
     output_data = pd.DataFrame(index=revenue_data.index, columns=column_names)
 
-    hospital_model_df = pd.DataFrame(columns=['Hospital', 'Model'])
-
+    # hospital_model_df = pd.DataFrame(columns=['Hospital', 'Model']) deprecated
+    hospital_model = {}
     #Loop through hospitals
     for hospital, revenue_series in revenue_data.iterrows():
         projection_type = determine_projection_type(revenue_series, MEDIUM_THRESHOLD, LARGE_THRESHOLD)
         # append hospitl and projection type to df
-        hospital_model_df = hospital_model_df.append({'Hospital': f'{hospital}', 'Model': f'{projection_type}'}, ignore_index=True)
+        # hospital_model_df = hospital_model_df.append({'Hospital': f'{hospital}', 'Model': f'{projection_type}'}, ignore_index=True) #deprecated
+        hospital_model[hospital] = projection_type
         if projection_type == 'fixed':
             projection = fixed(revenue_series)
         elif projection_type == 'three_month':
@@ -203,11 +204,12 @@ def process(input_path, export_path): # export_path is deprecate
         output_data.loc[hospital] = pd.concat([revenue_series, pd.Series(data=projection, index=new_months)])
     
     output_data.dropna(inplace=True, how='all')
-    hospital_model_df.dropna(inplace=True, how='all')
-    # output_data.to_excel(export_path, index_label='site') # deprecated\
+    # hospital_model_df.dropna(inplace=True, how='all') # deprecated
+    hospital_model_df = pd.DataFrame(list(hospital_model.items()), columns=['Hospital', 'Model'])
+    # output_data.to_excel(export_path, index_label='site') # deprecated
     input_file_name = input_path.split('/')[-1]
-    hospital_model_output_path = export_path+ '/TruCast_Models_Used' + input_file_name
-    hospital_model_df.to_excel(export_path, index_label='site')
+    hospital_model_output_path = export_path+ '/TruCast_Models_Used' + input_file_name+".xlsx"
+    hospital_model_df.to_excel(hospital_model_output_path, index_label='site')
     
     return output_data
 
